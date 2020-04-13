@@ -1968,6 +1968,8 @@ int write_commit_graph(struct object_directory *odb,
 	ctx->check_oids = flags & COMMIT_GRAPH_WRITE_CHECK_OIDS ? 1 : 0;
 	ctx->split_opts = split_opts;
 	ctx->changed_paths = flags & COMMIT_GRAPH_WRITE_BLOOM_FILTERS ? 1 : 0;
+	if (git_env_bool(GIT_TEST_COMMIT_GRAPH_CHANGED_PATHS, 0))
+		ctx->changed_paths = 1;
 	ctx->total_bloom_filter_data_size = 0;
 
 	if (ctx->split) {
