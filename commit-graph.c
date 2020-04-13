@@ -19,6 +19,13 @@
 #include "bloom.h"
 #include "commit-slab.h"
 
+void git_test_write_commit_graph_or_die(void)
+{
+	if (git_env_bool(GIT_TEST_COMMIT_GRAPH, 0) &&
+	    write_commit_graph_reachable(the_repository->objects->odb, 0, NULL))
+		die("failed to write commit-graph under GIT_TEST_COMMIT_GRAPH");
+}
+
 #define GRAPH_SIGNATURE 0x43475048 /* "CGPH" */
 #define GRAPH_CHUNKID_OIDFANOUT 0x4f494446 /* "OIDF" */
 #define GRAPH_CHUNKID_OIDLOOKUP 0x4f49444c /* "OIDL" */
