@@ -339,7 +339,8 @@ static int match_ref_pattern(const char *refname,
 
 int ref_filter_match(const char *refname,
 		     const struct string_list *include_patterns,
-		     const struct string_list *exclude_patterns)
+		     const struct string_list *exclude_patterns,
+		     const struct string_list *exclude_patterns_config)
 {
 	struct string_list_item *item;
 
@@ -351,17 +352,21 @@ int ref_filter_match(const char *refname,
 	}
 
 	if (include_patterns && include_patterns->nr) {
-		int found = 0;
 		for_each_string_list_item(item, include_patterns) {
 			if (match_ref_pattern(refname, item)) {
-				found = 1;
-				break;
+				return 1;
 			}
 		}
-
-		if (!found)
-			return 0;
+		return 0;
 	}
+
+	if (exclude_patterns_config && exclude_patterns_config->nr) {
+		for_each_string_list_item(item, exclude_patterns_config) {
+			if (match_ref_pattern(refname, item))
+				return 0;
+		}
+	}
+
 	return 1;
 }
 
