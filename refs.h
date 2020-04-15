@@ -362,16 +362,23 @@ void normalize_glob_ref(struct string_list_item *item, const char *prefix,
 			const char *pattern);
 
 /*
- * Returns 0 if refname matches any of the exclude_patterns, or if it doesn't
- * match any of the include_patterns. Returns 1 otherwise.
+ * Returns 0 if the refname matches any of the exclude_patterns.
  *
- * If pattern list is NULL or empty, matching against that list is skipped.
+ * Returns 0 if include_patterns is non-empty but refname does not match
+ * any of those patterns.
+ *
+ * Returns 0 if refname matches a pattern in exclude_patterns_config but
+ * does not match any pattern in inclue_patterns.
+ *
+ * Otherwise, returns 1.
+ *
  * This has the effect of matching everything by default, unless the user
  * specifies rules otherwise.
  */
 int ref_filter_match(const char *refname,
 		     const struct string_list *include_patterns,
-		     const struct string_list *exclude_patterns);
+		     const struct string_list *exclude_patterns,
+		     const struct string_list *exclude_patterns_config);
 
 static inline const char *has_glob_specials(const char *pattern)
 {

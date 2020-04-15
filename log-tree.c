@@ -90,7 +90,8 @@ static int add_ref_decoration(const char *refname, const struct object_id *oid,
 
 	if (filter && !ref_filter_match(refname,
 			      filter->include_ref_pattern,
-			      filter->exclude_ref_pattern))
+			      filter->exclude_ref_pattern,
+			      filter->exclude_ref_config_pattern))
 		return 0;
 
 	if (starts_with(refname, git_replace_ref_base)) {
@@ -153,6 +154,9 @@ void load_ref_decorations(struct decoration_filter *filter, int flags)
 				normalize_glob_ref(item, NULL, item->string);
 			}
 			for_each_string_list_item(item, filter->include_ref_pattern) {
+				normalize_glob_ref(item, NULL, item->string);
+			}
+			for_each_string_list_item(item, filter->exclude_ref_config_pattern) {
 				normalize_glob_ref(item, NULL, item->string);
 			}
 		}
