@@ -556,6 +556,8 @@ static int match_multi_number(timestamp_t num, char c, const char *date,
 	case ':':
 		if (num3 < 0)
 			num3 = 0;
+		else if (*end == '.' && isdigit(end[1]))
+			strtol(end + 1, &end, 10);
 		if (num < 25 && num2 >= 0 && num2 < 60 && num3 >= 0 && num3 <= 60) {
 			tm->tm_hour = num;
 			tm->tm_min = num2;
@@ -663,6 +665,28 @@ static int match_digit(const char *date, struct tm *tm, int *offset, int *tm_gmt
 	do {
 		n++;
 	} while (isdigit(date[n]));
+
+	/* 8 digits, compact style of ISO-8601's date: YYYYmmDD */
+	/* 6 digits, compact style of ISO-8601's time: HHMMSS */
+	if (n == 8 || n == 6) {
+		unsigned int num1 = num / 10000;
+		unsigned int num2 = (num % 10000) / 100;
+		unsigned int num3 = num % 100;
+		if (n == 8 && num1 > 1900 &&
+		    num2 > 0 && num2 <= 12 &&
+		    num3 > 0  && num3 <= 31) {
+			tm->tm_year = num1 - 1900;
+			tm->tm_mon  = num2 - 1;
+			tm->tm_mday = num3;
+		} else if (n == 6 && num1 < 60 && num2 < 60 && num3 <= 60) {
+			tm->tm_hour = num1;
+			tm->tm_min  = num2;
+			tm->tm_sec  = num3;
+			if (*end == '.' && isdigit(end[1]))
+				strtoul(end + 1, &end, 10);
+		}
+		return end - date;
+	}
 
 	/* Four-digit year or a timezone? */
 	if (n == 4) {
