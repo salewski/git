@@ -648,6 +648,15 @@ struct ref_transaction *ref_transaction_begin(struct strbuf *err);
  *         before the update. A copy of this value is made in the
  *         transaction.
  *
+ *     new_target -- the target reference that the reference will be
+ *         update to point to. This takes precedence over new_oid when
+ *         set. If the reference is a regular reference, it will be
+ *         converted to a symbolic reference.
+ *
+ *     old_target -- the reference that the reference must be pointing to.
+ *         Will only be taken into account when the reference is a symbolic
+ *         reference.
+ *
  *     flags -- flags affecting the update, passed to
  *         update_ref_lock(). Possible flags: REF_NO_DEREF,
  *         REF_FORCE_CREATE_REFLOG. See those constants for more
@@ -713,7 +722,11 @@ struct ref_transaction *ref_transaction_begin(struct strbuf *err);
  * beforehand. The old value is checked after the lock is taken to
  * prevent races. If the old value doesn't agree with old_oid, the
  * whole transaction fails. If old_oid is NULL, then the previous
- * value is not checked.
+ * value is not checked. If `old_target` is not NULL, treat the reference
+ * as a symbolic ref and validate that its target before the update is
+ * `old_target`. If the `new_target` is not NULL, then the reference
+ * will be updated to a symbolic ref which targets `new_target`.
+ * Together, these allow us to update between regular refs and symrefs.
  *
  * See the above comment "Reference transaction updates" for more
  * information.
@@ -722,6 +735,8 @@ int ref_transaction_update(struct ref_transaction *transaction,
 			   const char *refname,
 			   const struct object_id *new_oid,
 			   const struct object_id *old_oid,
+			   const char *new_target,
+			   const char *old_target,
 			   unsigned int flags, const char *msg,
 			   struct strbuf *err);
 
@@ -737,6 +752,7 @@ int ref_transaction_update(struct ref_transaction *transaction,
 int ref_transaction_create(struct ref_transaction *transaction,
 			   const char *refname,
 			   const struct object_id *new_oid,
+			   const char *new_target,
 			   unsigned int flags, const char *msg,
 			   struct strbuf *err);
 
@@ -751,7 +767,9 @@ int ref_transaction_create(struct ref_transaction *transaction,
 int ref_transaction_delete(struct ref_transaction *transaction,
 			   const char *refname,
 			   const struct object_id *old_oid,
-			   unsigned int flags, const char *msg,
+			   unsigned int flags,
+			   const char *old_target,
+			   const char *msg,
 			   struct strbuf *err);
 
 /*
@@ -765,6 +783,7 @@ int ref_transaction_delete(struct ref_transaction *transaction,
 int ref_transaction_verify(struct ref_transaction *transaction,
 			   const char *refname,
 			   const struct object_id *old_oid,
+			   const char *old_target,
 			   unsigned int flags,
 			   struct strbuf *err);
 
