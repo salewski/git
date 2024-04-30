@@ -180,6 +180,23 @@ test_expect_success 'scalar reconfigure' '
 	test true = "$(git -C one/src config core.preloadIndex)"
 '
 
+test_expect_success 'scalar reconfigure --all' '
+	repos="two three four" &&
+	for num in $repos
+	do
+		git init $num/src &&
+		scalar register $num/src &&
+		git -C $num/src config core.preloadIndex false || return 1
+	done &&
+
+	scalar reconfigure --all &&
+
+	for num in $repos
+	do
+		test true = "$(git -C $num/src config core.preloadIndex)" || return 1
+	done
+'
+
 test_expect_success '`reconfigure -a` removes stale config entries' '
 	git init stale/src &&
 	scalar register stale &&
