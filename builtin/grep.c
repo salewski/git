@@ -491,7 +491,7 @@ static int grep_submodule(struct grep_opt *opt,
 	 *	dictate the behavior for the submodule, making it "forget" its
 	 *	sparse-checkout state.
 	 *
-	 * 3. "core_sparse_checkout_cone"
+	 * 3. "settings.sparse_checkout_cone"
 	 *	ditto.
 	 *
 	 * Note that this list is not exhaustive.
