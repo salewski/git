@@ -70,6 +70,7 @@ struct repo_settings {
 
 	int sparse_checkout;
 	int sparse_checkout_cone;
+	int sparse_expect_files_outside_of_patterns;
 };
 #define REPO_SETTINGS_INIT { \
 	.shared_repository = -1, \
