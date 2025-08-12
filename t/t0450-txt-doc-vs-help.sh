@@ -112,16 +112,19 @@ do
 	adoc="$(builtin_to_adoc "$builtin")" &&
 	preq="$(echo BUILTIN_ADOC_$builtin | tr '[:lower:]-' '[:upper:]_')" &&
 
-	# if and only if *.adoc is missing, builtin shall be listed in t0450/adoc-missing
-	result=success
+	# If and only if *.adoc is missing, builtin shall be listed in t0450/adoc-missing.
 	if grep -q "^$builtin$" "$TEST_DIRECTORY"/t0450/adoc-missing
 	then
+		test_expect_success "$builtin appropriately marked as not having .adoc" '
+			! test -f "$adoc"
+		'
+	else
 		test_set_prereq "$preq"
-		result=failure
-	fi &&
-	test_expect_$result "$builtin appropriately marked as having missing .adoc" '
-		test -f "$adoc"
-	'
+
+		test_expect_success "$builtin appropriately marked as having .adoc" '
+			test -f "$adoc"
+		'
+	fi
 
 	# *.adoc output assertions
 	test_expect_success "$preq" "$builtin *.adoc SYNOPSIS has dashed labels" '
