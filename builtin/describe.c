@@ -24,6 +24,7 @@
 #include "commit-slab.h"
 #include "wildmatch.h"
 #include "prio-queue.h"
+#include "khash.h"
 
 #define MAX_TAGS	(FLAG_BITS - 1)
 #define DEFAULT_CANDIDATES 10
@@ -286,38 +287,74 @@ static void lazy_queue_clear(struct lazy_queue *queue)
 	queue->get_pending = false;
 }
 
-static bool all_have_flag(const struct lazy_queue *queue, unsigned flag)
+static inline unsigned int commit_index(const struct commit *commit)
 {
-	for (size_t i = queue->get_pending ? 1 : 0; i < queue->queue.nr; i++) {
-		struct commit *commit = queue->queue.array[i].data;
-		if (!(commit->object.flags & flag))
-			return false;
-	}
-	return true;
+	return commit->index;
+}
+
+static inline int ptr_eq(const void *a, const void *b)
+{
+	return a == b;
+}
+
+KHASH_INIT(commit_set, struct commit *, int, 0, commit_index, ptr_eq)
+
+static void commit_set_insert(kh_commit_set_t *set, struct commit *commit)
+{
+	int added;
+	kh_put_commit_set(set, commit, &added);
+}
+
+static void commit_set_remove(kh_commit_set_t *set, struct commit *commit)
+{
+	khiter_t pos = kh_get_commit_set(set, commit);
+	if (pos != kh_end(set))
+		kh_del_commit_set(set, pos);
 }
 
 static unsigned long finish_depth_computation(struct lazy_queue *queue,
 					      struct possible_tag *best)
 {
 	unsigned long seen_commits = 0;
+	kh_commit_set_t unflagged = { 0 };
+
+	for (size_t i = queue->get_pending ? 1 : 0; i < queue->queue.nr; i++) {
+		struct commit *commit = queue->queue.array[i].data;
+		if (!(commit->object.flags & best->flag_within))
+			commit_set_insert(&unflagged, commit);
+	}
+
 	while (!lazy_queue_empty(queue)) {
 		struct commit *c = lazy_queue_get(queue);
 		struct commit_list *parents = c->parents;
+
 		seen_commits++;
 		if (c->object.flags & best->flag_within) {
-			if (all_have_flag(queue, best->flag_within))
+			if (!kh_size(&unflagged))
 				break;
-		} else
+		} else {
+			commit_set_remove(&unflagged, c);
 			best->depth++;
+		}
 		while (parents) {
 			struct commit *p = parents->item;
+			unsigned seen, flag_before, flag_after;
+
 			repo_parse_commit(the_repository, p);
-			if (!(p->object.flags & SEEN))
+			seen = p->object.flags & SEEN;
+			if (!seen)
 				lazy_queue_put(queue, p);
+			flag_before = p->object.flags & best->flag_within;
 			p->object.flags |= c->object.flags;
+			flag_after = p->object.flags & best->flag_within;
+			if (!seen && !flag_after)
+				commit_set_insert(&unflagged, p);
+			if (seen && !flag_before && flag_after)
+				commit_set_remove(&unflagged, p);
 			parents = parents->next;
 		}
 	}
+	kh_release_commit_set(&unflagged);
 	return seen_commits;
 }
 
